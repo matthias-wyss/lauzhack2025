@@ -1,0 +1,11 @@
+# gitignore pycache files
+__pycache__/
+*.py[cod]
+
+# gitignore virtual environment folders
+env/
+.env
+
+# gitignore macOS system files
+.DS_Store
+
