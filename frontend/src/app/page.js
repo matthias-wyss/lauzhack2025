@@ -24,6 +24,8 @@ export default function App() {
   const [projectRoot, setProjectRoot] = useState("");
   const [structureJson, setStructureJson] = useState("");
 
+  const [competitionAnalysis, setCompetitionAnalysis] = useState("");
+
   // Webcam overlay visibility
   const [showWebcam, setShowWebcam] = useState(false);
 
@@ -73,7 +75,7 @@ export default function App() {
     const animatePipeline = async () => {
       for (let i = 0; i < PIPELINE_STEPS.length - 1; i++) {
         setPipelineStep(PIPELINE_STEPS[i]);
-        await sleep(100);
+        await sleep(60000);
       }
     };
 
@@ -111,6 +113,8 @@ export default function App() {
       setZipBase64(data.zip_base64 || "");
       setProjectRoot(data.project_root || "");
       setStructureJson(data.structure_json || "");
+
+      setCompetitionAnalysis(data.competition_analysis || "");
 
       await animationPromise;
 
@@ -160,6 +164,7 @@ export default function App() {
             code={code}
             zipBase64={zipBase64}
             projectRoot={projectRoot}
+            competitionAnalysis={competitionAnalysis}
           />
         </div>
       </main>
@@ -438,17 +443,20 @@ function OutputPanel({
   code,
   zipBase64,
   projectRoot,
+  competitionAnalysis,
 }) {
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "architecture", label: "Architecture" },
     { id: "code", label: "Code" },
+    { id: "competition", label: "Competition Analysis" },
   ];
 
   const content = {
     overview,
     architecture,
     code,
+    competitionAnalysis,
   }[selectedTab];
 
   const handleDownloadZip = () => {

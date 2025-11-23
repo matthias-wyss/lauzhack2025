@@ -1,0 +1,33 @@
+{
+  "name": "meteo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint --ext .ts,.tsx ."
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "swr": "2.2.5",
+    "zod": "3.23.8",
+    "next-pwa": "5.6.0",
+    "tailwindcss": "3.4.13",
+    "autoprefixer": "10.4.20",
+    "postcss": "8.4.49",
+    "classnames": "2.5.1",
+    "lucide-react": "0.474.0",
+    "leaflet": "1.9.4"
+  },
+  "devDependencies": {
+    "@types/node": "22.7.5",
+    "@types/react": "18.3.8",
+    "@types/react-dom": "18.3.2",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.5",
+    "typescript": "5.6.3"
+  }
+}

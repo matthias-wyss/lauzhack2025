@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import os
 from pyagentspec.agent import Agent
@@ -8,7 +9,9 @@ from pyagentspec.serialization import AgentSpecSerializer
 from wayflowcore.agentspec import AgentSpecLoader
 from gradio_client import Client, file
 from dotenv import load_dotenv
-
+from tavily import TavilyClient
+import requests
+from bs4 import BeautifulSoup
 
 load_dotenv()
 
@@ -84,6 +87,47 @@ def write_file(path: str, text: str) -> None:
     with open(path, 'w') as file:
         file.write(text)
         file.close()
+        
+        
+def save_to_txt(data: str, filename: str = "competition_output.txt"):
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_text = f"--- Competition Output ---\nTimestamp: {timestamp}\n\n{data}\n\n"
+
+        with open(filename, "a", encoding="utf-8") as f:
+            f.write(formatted_text)
+
+        return f"Data successfully saved to {filename}"
+    
+    except Exception as e:
+        return f"Error saving data: {e}"
+    
+# Scrape raw text from a website
+def scrape_website(url: str) -> str:
+    try:
+        # Send GET request to the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise error for bad HTTP codes
+
+        # Parse and clean up the raw HTML content
+        soup = BeautifulSoup(response.content, "html.parser")
+        text = soup.get_text(separator=" ", strip=True)
+        text = re.sub(r'\s+', ' ', text)  # Normalize whitespace
+
+        # Limit to 5000 characters for performance and API limits
+        return text[:5000]
+    except Exception as e:
+        return f"Error scraping website: {e}"
+
+#takes a query and returns the URLs related to the query
+def search(query):
+    tavily_client = TavilyClient(api_key=api_key_)
+    response = tavily_client.search(query)
+    urls=[]
+    for i in range(len(response.get('results'))):
+        url = response.get('results')[i].get('url')
+        urls.append(url)
+    return urls
 
 
 
@@ -131,6 +175,24 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
         description="Write header functions to a file given the project specification.",
         inputs=[StringProperty(title="path"), StringProperty(title="text")],
     )
+    
+    search_tool = ServerTool(
+        name="search",
+        description="takes a query and returns a list of the urls related to the query",
+        inputs=[StringProperty(title="query")],
+    )
+
+    scrape_website_tool = ServerTool(
+        name="scrape_website",
+        description=" Scrape raw text from a website and returns the text",
+        inputs=[StringProperty(title="url")],
+    )
+
+    save_to_txt_tool = ServerTool(
+        name="save_to_txt",
+        description=" Scrape raw text from a website and returns the text",
+        inputs=[StringProperty(title="data")],
+    )
 
     tool_registry = {
         "extract_handwriting": extract_handwriting,
@@ -139,6 +201,9 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
         "create_file": create_file,
         "create_folder": create_folder,
         "write_file": write_file,
+        "search": search,
+        "scrape_website": scrape_website,
+        "save_to_txt": save_to_txt,
     }
     
     agentExtractor = Agent(
@@ -242,6 +307,71 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
         -Be sure that the code is of quality, remember created function to reuse them later.
     """
     
+    
+    CompetitionPrompt = """
+        {% raw %}
+        You are the Competition Analysis Agent. You receive long specification documents or descriptions of a project from the user. Your mission is:
+
+        1. Read the entire specification and extract the core idea of the project. Summarize it in simple terms that capture the product, the problem it solves, its main features, and the value it provides.
+
+        2. Based on the extracted idea, generate three to six strong competitor search queries. These queries should capture the essence of the product, its function, and its market category. They must be expressed as natural language search queries that could realistically be typed by someone researching competitors.
+
+        3. Automatically call the search tool using the best query. If needed, additional queries may also be used. Then optionally call the scrape_website tool on relevant URLs returned by search.
+
+        4. Use both gathered data and reasoning when tool output is incomplete. Even if tool calls fail, you must still produce a complete analysis.
+
+        5. Create a full competitive analysis in the required format described below.
+
+        --------------------------------------------------------------------------------------------------
+        OUTPUT FORMAT RULES — THE FINAL RESULT MUST BE ONE SINGLE CLEAN PLAIN TEXT STRING
+        --------------------------------------------------------------------------------------------------
+        Your final analysis must be returned as a single plain text string with no formatting syntax of any kind. No markdown. No bullet points. No hyphens. No stars. No tables. No code blocks. No JSON. No YAML. No numbering that uses symbols. No headings with symbols such as # or ##.
+
+        Structure the plain text in the following order:
+
+        A. Extracted Idea: a paragraph describing the project idea you extracted from the specification.
+
+        B. Search Queries Generated: a single paragraph listing all search queries separated by commas.
+
+        C. Competitor Summaries: for each competitor, write one short paragraph describing the competitor, what they do, the features they offer, their strengths, and their weaknesses. Competitor paragraphs must be separated by a blank line. Do not use bullet points, lists, or tables. Only flowing natural language paragraphs.
+
+        D. Market Observations: one or two paragraphs explaining relevant trends, insights, or gaps in the market.
+
+        E. SWOT Analysis: four paragraphs labeled Strengths:, Weaknesses:, Opportunities:, Threats:. Each paragraph must be continuous text with no lists and no bullet points.
+
+        F. Recommendations: one or two paragraphs with strategic guidance, again without lists or special formatting.
+
+        The entire output must be one single multiline plain text string. It must be safe to pass directly to a frontend or to a storage system without further cleanup.
+
+        --------------------------------------------------------------------------------------------------
+        MANDATORY SAVE BEHAVIOR
+        --------------------------------------------------------------------------------------------------
+        After generating this entire plain text analysis:
+
+        1. You MUST call the save_to_txt tool with the final string as the value of data.
+        2. After the tool call returns, you MUST send a final human-facing message saying: The analysis is complete and has been saved.
+        3. After sending this final message, you MUST stop and produce no additional tool calls or output.
+
+        --------------------------------------------------------------------------------------------------
+        TOOL USAGE LOGIC
+        --------------------------------------------------------------------------------------------------
+        1. Always begin by extracting the idea from the user's document.
+        2. Then generate search queries.
+        3. Then call the search tool with the best query.
+        4. Optionally use scrape_website on relevant URLs.
+        5. Continue analysis even if search or scraping fails.
+        6. Never tell the user you cannot perform the analysis.
+        7. Never ask the user whether they want the analysis to be saved. Saving is automatic.
+
+        --------------------------------------------------------------------------------------------------
+        BEHAVIORAL RULES
+        --------------------------------------------------------------------------------------------------
+        Do not use markdown. Do not use tables. Do not use lists. Do not generate JSON. Do not format text using symbols. Do not break the plain text requirement. Always stay analytical and descriptive. Always finish with a save_to_txt tool call followed by one short confirmation message, then stop.
+
+        {% endraw %}
+        """
+
+    
     agentCreator = Agent(
         name="Structure Creation Agent",
         llm_config=llm_config,
@@ -249,6 +379,13 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
         system_prompt=(CreatorPrompt),
     )
 
+
+    agentCompetition = Agent(
+        name="Competition Analysis Agent",
+        llm_config=llm_config,
+        tools=[search_tool, scrape_website_tool, save_to_txt_tool], 
+        system_prompt=(CompetitionPrompt),
+    )
     
     
 
@@ -256,12 +393,14 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
     serialized_agentAudioExtractor = AgentSpecSerializer().to_json(agentAudioExtractor)
     serialized_agentEnricher = AgentSpecSerializer().to_json(agentEnricher)
     serialized_agentCreator = AgentSpecSerializer().to_json(agentCreator)
+    serialized_agentCompetition = AgentSpecSerializer().to_json(agentCompetition)
             
     loader = AgentSpecLoader(tool_registry=tool_registry)
     wayflow_agentExtractor = loader.load_json(serialized_agentExtractor) 
     wayflow_agentAudioExtractor = loader.load_json(serialized_agentAudioExtractor)
     wayflow_agentEnricher = loader.load_json(serialized_agentEnricher)
     wayflow_agentCreator = loader.load_json(serialized_agentCreator)
+    wayflow_agentCompetition = loader.load_json(serialized_agentCompetition)
     
     conversationExtractor = wayflow_agentExtractor.start_conversation()
     conversationExtractor.append_user_message(f"Extract handwritten text from the following image URL: {image_path}")
@@ -289,6 +428,16 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
     
     spec = messages[-1].contents[0].content
     print("Enriched Idea:\n", spec)
+    
+    conversationCompetition = wayflow_agentCompetition.start_conversation()
+    conversationCompetition.append_user_message(spec)
+    conversationCompetition.execute()
+    messages = conversationCompetition.get_messages()
+    
+    print("Competition Analysis Messages:\n", messages)
+    
+    competition_output = messages[-2].contents[0].content
+    print("Competition Analysis Output:\n", competition_output)
     
     conversationCreator = wayflow_agentCreator.start_conversation()
     conversationCreator.append_user_message(spec)
@@ -334,4 +483,4 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
     # - spec (enriched idea / description)
     # - structure_json_str (JSON string with folders/files/functions)
     # - project_root (top-level directory where code was created)
-    return spec, structure_json_str, project_root
+    return spec, structure_json_str, project_root, competition_output

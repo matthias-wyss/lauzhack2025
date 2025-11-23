@@ -143,7 +143,7 @@ async def process_project(
         
             
     # Run your agent pipeline: returns spec, structure JSON, and project root folder
-    spec, structure_json_str, project_root = create_code(
+    spec, structure_json_str, project_root, competition_output = create_code(
         image_path="input_image.jpg" if have_image else None,
         audio_url="input_audio.wav" if have_audio else None,
     )
@@ -176,4 +176,5 @@ async def process_project(
         "zip_base64": zip_base64,
         "project_root": project_root,
         "structure_json": structure_json_str,
+        "competition_analysis": competition_output,
     }
