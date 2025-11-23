@@ -124,6 +124,9 @@ async def process_project(
     overview = ""
     structure_json_str = ""
     project_root = ""
+    
+    have_audio = audio is not None
+    have_image = image is not None
 
     if image is not None:
         image_bytes = await image.read()
@@ -132,14 +135,18 @@ async def process_project(
         with open("input_image.jpg", "wb") as f:
             f.write(image_bytes)
 
-        # Run your agent pipeline: returns spec, structure JSON, and project root folder
-        spec, structure_json_str, project_root = create_code("input_image.jpg")
-        overview = spec  # you can change this mapping if you prefer
-
     if audio is not None:
         audio_bytes = await audio.read()
-        # TODO: run your audio + ASR + summarization pipeline here and
-        # maybe merge with 'spec' / overview.
+        
+        with open("input_audio.wav", "wb") as f:
+            f.write(audio_bytes)
+        
+            
+    # Run your agent pipeline: returns spec, structure JSON, and project root folder
+    spec, structure_json_str, project_root = create_code(
+        image_path="input_image.jpg" if have_image else None,
+        audio_url="input_audio.wav" if have_audio else None,
+    )
 
     # If for some reason project_root is empty (e.g., no image), avoid crashes
     if not project_root:
@@ -163,7 +170,7 @@ async def process_project(
 
 
     return {
-        "overview": overview,
+        "overview": spec,
         "architecture": architecture_analysis,
         "code": code_tree,
         "zip_base64": zip_base64,

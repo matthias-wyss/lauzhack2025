@@ -87,7 +87,7 @@ def write_file(path: str, text: str) -> None:
 
 
 
-def create_code(image_path: str,audio_url: str) -> str:
+def create_code(image_path: str | None, audio_url: str | None) -> str:
     print("Creating spec from image:", image_path)
 
     llm_config = OpenAiConfig(
@@ -175,7 +175,7 @@ def create_code(image_path: str,audio_url: str) -> str:
 
         Your task is to:
 
-        1. Create a single top-level directory named after the application described in the specification.
+        1. Create a single top-level directory named GeneratedProject.
 
         2. Inside this directory, infer a complete project directory structure (you may use subfolders such as frontend, backend, services, utils, tests, etc.).
 
@@ -271,13 +271,16 @@ def create_code(image_path: str,audio_url: str) -> str:
     clean_messages = messages[-1].contents[0].content.split(":")[1].strip()
     print("Extracted Handwritten Text:\n", clean_messages)
 
-    conversationAudioExtractor = wayflow_agentAudioExtractor.start_conversation()
-    conversationAudioExtractor.append_user_message(f"Extract audio text from the following audio file: {audio_url}")
-    conversationAudioExtractor.execute()
-    messages = conversationAudioExtractor.get_messages()
-    
-    audio_text = messages[-1].contents[0].content.split(":")[1].strip()
-    print("Extracted Audio Text:\n", audio_text)
+    if audio_url:
+        conversationAudioExtractor = wayflow_agentAudioExtractor.start_conversation()
+        conversationAudioExtractor.append_user_message(f"Extract audio text from the following audio file: {audio_url}")
+        conversationAudioExtractor.execute()
+        messages = conversationAudioExtractor.get_messages()
+        
+        audio_text = messages[-1].contents[0].content.split(":")[1].strip()
+        print("Extracted Audio Text:\n", audio_text)
+    else:
+        audio_text = ""
 
     conversationEnricher = wayflow_agentEnricher.start_conversation()
     conversationEnricher.append_user_message(f"Enrich the following idea into a detailed description: {clean_messages}, {audio_text}")
@@ -285,14 +288,18 @@ def create_code(image_path: str,audio_url: str) -> str:
     messages = conversationEnricher.get_messages()
     
     spec = messages[-1].contents[0].content
+    print("Enriched Idea:\n", spec)
     
     conversationCreator = wayflow_agentCreator.start_conversation()
     conversationCreator.append_user_message(spec)
     conversationCreator.execute()
     messages = conversationCreator.get_messages()
     
+    print(messages)
+    
     structure_json_str = messages[-1].contents[0].content
-    print("Created Project Structure and Code:\n", structure_json_str)
+    for msg in messages:
+        print(msg.contents)
     
     try:
         data = json.loads(structure_json_str)
