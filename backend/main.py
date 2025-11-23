@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
-from agent2 import create_code
+from agent import create_code
 
 import os
 import io
