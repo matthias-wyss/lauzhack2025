@@ -41,12 +41,12 @@ Gemini handles:
 - generating documentation tailored to the project’s structure
 
 ### 4. Output  
-The system produces:  
-- a fully structured `spec.md`  
-- architecture diagrams or descriptions  
-- modular backend and frontend code  
-- README and developer-oriented documentation  
-- optional deployment boilerplate
+Specter produces **fully implemented, modular files** that already contain functions and code implementing the elements identified from the brainstorming session.  
+These outputs include:  
+- backend and frontend modules  
+- reusable functions corresponding to brainstormed features  
+- automatically generated documentation and developer notes  
+- optional deployment scaffolding
 
 ## Tech Stack  
 **Frontend**: Web app built for simplicity and rapid interaction  
@@ -56,7 +56,7 @@ The system produces:
 **Hardware**: Logitech MX Brio (camera + microphone)  
 
 ## Why This Project?  
-Hackathon teams often lose precious time translating ideas into code. Specter automates the early phase of project creation by transforming brainstorming sessions into structured, ready-to-use project scaffolds.  
+Hackathon teams often lose precious time translating ideas into code. Specter automates the early phase of project creation by transforming brainstorming sessions into fully functional, ready-to-use project scaffolds.  
 The objective is to let teams build faster, iterate better, and focus on creativity rather than setup.
 
 ## Team  
