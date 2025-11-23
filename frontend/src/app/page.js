@@ -75,7 +75,7 @@ export default function App() {
     const animatePipeline = async () => {
       for (let i = 0; i < PIPELINE_STEPS.length - 1; i++) {
         setPipelineStep(PIPELINE_STEPS[i]);
-        await sleep(60000);
+        await sleep(600); // was 60000 (60s) before – way too long
       }
     };
 
@@ -456,7 +456,7 @@ function OutputPanel({
     overview,
     architecture,
     code,
-    competitionAnalysis,
+    competition: competitionAnalysis, // map "competition" tab id to the right state
   }[selectedTab];
 
   const handleDownloadZip = () => {
