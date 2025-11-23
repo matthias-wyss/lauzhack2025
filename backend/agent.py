@@ -121,7 +121,7 @@ def scrape_website(url: str) -> str:
 
 #takes a query and returns the URLs related to the query
 def search(query):
-    tavily_client = TavilyClient(api_key=api_key_)
+    tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
     response = tavily_client.search(query)
     urls=[]
     for i in range(len(response.get('results'))):
@@ -425,6 +425,7 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
     conversationEnricher.append_user_message(f"Enrich the following idea into a detailed description: {clean_messages}, {audio_text}")
     conversationEnricher.execute()
     messages = conversationEnricher.get_messages()
+        
     
     spec = messages[-1].contents[0].content
     print("Enriched Idea:\n", spec)
@@ -434,9 +435,14 @@ def create_code(image_path: str | None, audio_url: str | None) -> str:
     conversationCompetition.execute()
     messages = conversationCompetition.get_messages()
     
-    print("Competition Analysis Messages:\n", messages)
+    competition_output = ""
+
+    if os.path.exists("competition_output.txt"):
+        with open("competition_output.txt", "r", encoding="utf-8") as f:
+            competition_output = f.read()
+    else:
+        competition_output = "No competition analysis found."
     
-    competition_output = messages[-2].contents[0].content
     print("Competition Analysis Output:\n", competition_output)
     
     conversationCreator = wayflow_agentCreator.start_conversation()
