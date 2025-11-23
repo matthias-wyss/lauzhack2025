@@ -1,0 +1,16 @@
+{
+  "name": "meteo-webapp-root",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev:backend": "npm --workspace backend run dev",
+    "build": "npm --workspace backend run build && npm --workspace frontend run build",
+    "start": "npm --workspace backend run start",
+    "test": "npm --workspace backend test && npm --workspace frontend test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

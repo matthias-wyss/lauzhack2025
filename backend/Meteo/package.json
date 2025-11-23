@@ -1,0 +1,10 @@
+{
+  "name": "meteo",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "npm -w frontend run dev & npm -w backend run dev",
+    "start": "npm -w backend start",
+    "build": "npm -w frontend run build && npm -w backend run build"
+  }
+}
